@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun MainScreen(balance: String, onSendClick: (String, String) -> Unit) {
-    var amount by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("1900") }
+    var address by remember { mutableStateOf("tb1q9uxwr8qny8scmqw6n6t5ll9dfpms0yz606fd50") }
 
     Column (
         modifier = Modifier
@@ -36,11 +36,12 @@ fun MainScreen(balance: String, onSendClick: (String, String) -> Unit) {
         Text(text = "Bitcoin wallet", fontSize = 24.sp)
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(text = "Balance: $balance tBTC", fontSize = 18.sp)
+        Text(text = "Balance: $balance ssats", fontSize = 18.sp)
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = amount,
+
             onValueChange = { amount = it },
             label = { Text(text = "Amount to send") },
             modifier = Modifier.fillMaxWidth()

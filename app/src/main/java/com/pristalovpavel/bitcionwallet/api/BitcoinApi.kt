@@ -1,12 +1,12 @@
 package com.pristalovpavel.bitcionwallet.api
 
 import com.pristalovpavel.bitcionwallet.model.AddressInfoResponse
+import com.pristalovpavel.bitcionwallet.model.TransactionResponse
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.create
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -15,6 +15,9 @@ import retrofit2.http.Path
 interface BitcoinApi {
     @GET("address/{address}")
     suspend fun getAddressInfo(@Path("address") address: String) : AddressInfoResponse
+
+    @GET("address/{address}/txs")
+    suspend fun getTransactions(@Path("address") address: String) : List<TransactionResponse>
 
     @POST("tx")
     suspend fun sendTransaction(@Body transactionHex: RequestBody): retrofit2.Response<Unit>
