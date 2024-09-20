@@ -1,10 +1,15 @@
 package com.pristalovpavel.bitcionwallet.model
 
+import com.google.gson.annotations.SerializedName
+
 data class AddressInfoResponse(
-    val chain_stats: ChainStats
+    @SerializedName("chain_stats")
+    val chainStats: ChainStats
 )
 
 data class ChainStats (
-    val funded_txo_sum: Long,
-    val spent_txo_sum: Long
+    @SerializedName("funded_txo_sum")
+    val fundedSum: Long,
+    @SerializedName("spent_txo_sum")
+    val spentSum: Long
 )

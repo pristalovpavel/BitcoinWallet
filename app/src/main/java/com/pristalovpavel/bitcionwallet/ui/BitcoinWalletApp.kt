@@ -34,6 +34,9 @@ fun BitcoinWalletApp (viewModel: BitcoinViewModel) {
                 transactionStatus = transactionStatus,
                 onSendClick = { amount, address ->
                    viewModel.sendBitcoinTransaction(myAddress, privateKey, address, amount.trim().toLong())
+                },
+                onSendMoreClick = {
+                    viewModel.loadBalance(myAddress)
                 }
             )
         }

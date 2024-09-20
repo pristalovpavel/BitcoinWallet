@@ -4,8 +4,6 @@ import com.pristalovpavel.bitcionwallet.api.BitcoinApi
 import com.pristalovpavel.bitcionwallet.model.TransactionResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.bitcoinj.base.AddressParser
 import org.bitcoinj.base.BitcoinNetwork
 import org.bitcoinj.base.Coin
@@ -21,12 +19,13 @@ import org.bitcoinj.script.ScriptBuilder
 
 
 class BitcoinRepository(private val api: BitcoinApi) {
+
     suspend fun getBalance(address: String): Result<Long> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = api.getAddressInfo(address)
                 val balance =
-                    response.chain_stats.funded_txo_sum - response.chain_stats.spent_txo_sum
+                    response.chainStats.fundedSum - response.chainStats.spentSum
                 Result.success(balance)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -50,6 +49,7 @@ class BitcoinRepository(private val api: BitcoinApi) {
         privateKey: String,
         destinationAddress: String,
         amount: Long,
+        feeAmount: Long,
         utxoTxId: String,  // transaction to spend from
         outputIndex: Long,  // index of output in transaction
         valueIn: Long  // UTXO amount (in satoshis)
@@ -68,7 +68,6 @@ class BitcoinRepository(private val api: BitcoinApi) {
 
                 val addressParser = AddressParser.getDefault()
                 val toAddress = addressParser.parseAddress(destinationAddress)
-                //val toAddress = Address.fromString(params, destinationAddress)
 
                 val sendAmount = Coin.valueOf(amount)
 
@@ -76,7 +75,7 @@ class BitcoinRepository(private val api: BitcoinApi) {
                 val totalInput = Coin.valueOf(valueIn)
                 // Commission to miners.
                 // Min 220 satoshi, otherwise you will get "min relay fee not met, 1 < 220" from backend
-                val fee = Coin.valueOf(221)
+                val fee = Coin.valueOf(feeAmount)
 
                 // We check if there are enough funds to send, taking into account the commission
                 if (totalInput.subtract(sendAmount) < fee) {
@@ -122,12 +121,10 @@ class BitcoinRepository(private val api: BitcoinApi) {
                 // Convert the transaction to HEX for sending.
                 // We need to send only HEX as a plain text.
                 val transactionHex = transaction.serialize().toHexString()
-                val body = transactionHex.toRequestBody("text/plain".toMediaTypeOrNull())
-
-                val response = api.sendTransaction(body)
+                val response = api.sendTransaction(transactionHex)
 
                 if (response.isSuccessful) {
-                    Result.success("Transaction sent successfully: ${transaction.txId}")
+                    Result.success(response.body() ?: "")
                 } else {
                     Result.failure(Exception("Failed to send transaction"))
                 }
@@ -144,19 +141,19 @@ class BitcoinRepository(private val api: BitcoinApi) {
         var balance = 0L
 
         transactions.forEach { tx ->
-            tx.vout.forEach { vout ->
+            tx.vOut.forEach { vOut ->
                 // Check if this vout is for my address
-                if (vout.scriptpubkey_address == address) {
+                if (vOut.scriptPublicKeyAddress == address) {
                     // Check if it was spent
                     val isSpent = transactions.any { txIn ->
-                        txIn.vin.any { vin ->
-                            vin.txid == tx.txid && vin.vout == tx.vout.indexOf(vout)
+                        txIn.vIn.any { vin ->
+                            vin.txId == tx.txId && vin.vOut == tx.vOut.indexOf(vOut)
                         }
                     }
 
                     // if trx haven't spent, add it
                     if (!isSpent) {
-                        balance += vout.value
+                        balance += vOut.value
                     }
                 }
             }

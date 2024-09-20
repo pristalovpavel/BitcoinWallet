@@ -18,6 +18,9 @@ class BitcoinViewModel (private val repository: BitcoinRepository) : ViewModel()
     private val _transactionStatus = MutableStateFlow(Result.success(""))
     val transactionStatus: StateFlow<Result<String>> = _transactionStatus
 
+    private val feeAmount = 250L
+    private val dustThreshold = 300L
+
     fun loadBalance(address: String) {
         viewModelScope.launch {
             val result = repository.getBalance(address)
@@ -34,7 +37,10 @@ class BitcoinViewModel (private val repository: BitcoinRepository) : ViewModel()
         viewModelScope.launch {
             try {
                 val transactions = repository.getTransactions(myAddress)
-                if(transactions.isFailure) return@launch
+                if (transactions.isFailure) {
+                    _transactionStatus.value = Result.failure(Exception("Failed to fetch transactions"))
+                    return@launch
+                }
 
                 val utxo = findSuitableUtxo(transactions.getOrNull() ?: emptyList(), amount)
                 if (utxo != null) {
@@ -42,21 +48,18 @@ class BitcoinViewModel (private val repository: BitcoinRepository) : ViewModel()
                         privateKey = privateKey,
                         destinationAddress = destinationAddress,
                         amount = amount,
-                        utxoTxId = utxo.txid,
-                        outputIndex = utxo.voutIndex,
+                        feeAmount = feeAmount,
+                        utxoTxId = utxo.txId,
+                        outputIndex = utxo.vOutIndex,
                         valueIn = utxo.value
                     )
-
-                    if (result.isSuccess) {
-                        println("Trx success: ${result.getOrNull()}")
-                    } else {
-                        println("Trx error: ${result.exceptionOrNull()}")
-                    }
+                    _transactionStatus.value = result
                 } else {
-                    println("No available UTXO for amount $amount")
+                    _transactionStatus.value =
+                        Result.failure(Exception("No available UTXO for amount $amount"))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                _transactionStatus.value = Result.failure(e)
             }
         }
     }
@@ -64,16 +67,16 @@ class BitcoinViewModel (private val repository: BitcoinRepository) : ViewModel()
     private fun findSuitableUtxo(transactions: List<TransactionResponse>, amount: Long): Utxo? {
         for (tx in transactions) {
             if (tx.status.confirmed) {
-                tx.vout.forEachIndexed { index, vout ->
-                    if (vout.value >= amount) {
+                tx.vOut.forEachIndexed { index, vout ->
+                    if (vout.value >= (amount + feeAmount + dustThreshold)) {
                         // Check that this output has not been used as an input (UTXO)
                         val isUsed = transactions.any { transaction ->
-                            transaction.vin.any { vin -> vin.txid == tx.txid && vin.vout == index }
+                            transaction.vIn.any { vin -> vin.txId == tx.txId && vin.vOut == index }
                         }
 
                         // If UTXO was not used, return it
                         if (!isUsed) {
-                            return Utxo(tx.txid, index.toLong(), vout.value)
+                            return Utxo(tx.txId, index.toLong(), vout.value)
                         }
                     }
                 }
