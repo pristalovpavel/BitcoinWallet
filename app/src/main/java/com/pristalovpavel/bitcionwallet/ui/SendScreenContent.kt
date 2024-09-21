@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 
 @Composable
-fun MainScreenContent(
+fun SendScreenContent(
     balanceState: Result<Long>,
     transactionStatus: Result<String>,
     onSendClick: (String, String) -> Unit,
@@ -32,7 +32,7 @@ fun MainScreenContent(
         }
     }
 
-    MainScreen(balance = balance, onSendClick = onSendClick)
+    SendScreen(balance = balance, onSendClick = onSendClick)
 
     if (showDialog.value) {
         TransactionResultDialog(

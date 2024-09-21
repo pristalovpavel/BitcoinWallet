@@ -1,7 +1,6 @@
 package com.pristalovpavel.bitcionwallet.repository
 
 import com.pristalovpavel.bitcionwallet.api.BitcoinApi
-import com.pristalovpavel.bitcionwallet.model.TransactionResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.bitcoinj.base.AddressParser
@@ -33,7 +32,7 @@ class BitcoinRepository(private val api: BitcoinApi) {
         }
     }
 
-    suspend fun getTransactions(address: String): Result<List<TransactionResponse>> {
+    suspend fun getTransactions(address: String): Result<List<com.pristalovpavel.bitcionwallet.model.TransactionDTO>> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = api.getTransactions(address)
@@ -135,7 +134,7 @@ class BitcoinRepository(private val api: BitcoinApi) {
     }
 
     suspend fun getBalanceFromTransactions(
-        transactions: List<TransactionResponse>,
+        transactions: List<com.pristalovpavel.bitcionwallet.model.TransactionDTO>,
         address: String
     ): Long {
         var balance = 0L

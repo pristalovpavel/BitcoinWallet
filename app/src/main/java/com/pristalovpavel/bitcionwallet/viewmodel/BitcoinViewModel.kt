@@ -2,7 +2,7 @@ package com.pristalovpavel.bitcionwallet.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pristalovpavel.bitcionwallet.model.TransactionResponse
+import com.pristalovpavel.bitcionwallet.model.TransactionDTO
 import com.pristalovpavel.bitcionwallet.model.Utxo
 import com.pristalovpavel.bitcionwallet.repository.BitcoinRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +17,9 @@ class BitcoinViewModel (private val repository: BitcoinRepository) : ViewModel()
 
     private val _transactionStatus = MutableStateFlow(Result.success(""))
     val transactionStatus: StateFlow<Result<String>> = _transactionStatus
+
+    private val _transactions = MutableStateFlow<Result<List<TransactionDTO>>>(Result.success(emptyList()))
+    val transactions: StateFlow<Result<List<TransactionDTO>>> = _transactions
 
     private val feeAmount = 250L
     private val dustThreshold = 300L
@@ -64,7 +67,14 @@ class BitcoinViewModel (private val repository: BitcoinRepository) : ViewModel()
         }
     }
 
-    private fun findSuitableUtxo(transactions: List<TransactionResponse>, amount: Long): Utxo? {
+    fun loadTransactions(address: String) {
+            viewModelScope.launch {
+                val result = repository.getTransactions(address)
+                _transactions.value = result
+            }
+        }
+
+    private fun findSuitableUtxo(transactions: List<TransactionDTO>, amount: Long): Utxo? {
         for (tx in transactions) {
             if (tx.status.confirmed) {
                 tx.vOut.forEachIndexed { index, vout ->

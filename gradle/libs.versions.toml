@@ -12,6 +12,8 @@ okHttpVersion = "4.12.0"
 gsonVersion = "2.10.1"
 retrofitVersion = "2.11.0"
 bitcoinjVersion = "0.17-beta1"
+navigationRuntimeKtx = "2.8.1"
+navigationCompose = "2.8.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +36,8 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gsonVersi
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofitVersion"}
 retrofit-converter = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofitVersion"}
 bitcoinj = { group = "org.bitcoinj", name = "bitcoinj-core", version.ref = "bitcoinjVersion"}
+androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.pristalovpavel.bitcionwallet.api.BitcoinApi
 import com.pristalovpavel.bitcionwallet.repository.BitcoinRepository
 import com.pristalovpavel.bitcionwallet.ui.BitcoinWalletApp
-import com.pristalovpavel.bitcionwallet.ui.theme.BitcionWalletTheme
+import com.pristalovpavel.bitcionwallet.ui.theme.BitcoinWalletTheme
 import com.pristalovpavel.bitcionwallet.viewmodel.BitcoinViewModel
 import com.pristalovpavel.bitcionwallet.viewmodel.BitcoinViewModelFactory
 
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         val viewModel = ViewModelProvider(this, viewModelFactory)[BitcoinViewModel::class.java]
 
         setContent {
-            BitcionWalletTheme {
+            BitcoinWalletTheme {
                 BitcoinWalletApp(viewModel = viewModel)
             }
         }

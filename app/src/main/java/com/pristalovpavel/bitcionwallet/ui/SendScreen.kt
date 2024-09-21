@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun MainScreen(balance: String, onSendClick: (String, String) -> Unit) {
+fun SendScreen(balance: String, onSendClick: (String, String) -> Unit) {
     var amount by remember { mutableStateOf("1900") }
     var address by remember { mutableStateOf("tb1q9uxwr8qny8scmqw6n6t5ll9dfpms0yz606fd50") }
 
@@ -65,5 +65,5 @@ fun MainScreen(balance: String, onSendClick: (String, String) -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewMainScreen() {
-    MainScreen(balance = "0.0") { _, _ -> }
+    SendScreen(balance = "0.0") { _, _ -> }
 }

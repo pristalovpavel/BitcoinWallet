@@ -1,7 +1,7 @@
 package com.pristalovpavel.bitcionwallet.api
 
 import com.pristalovpavel.bitcionwallet.model.AddressInfoResponse
-import com.pristalovpavel.bitcionwallet.model.TransactionResponse
+import com.pristalovpavel.bitcionwallet.model.TransactionDTO
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
@@ -17,7 +17,7 @@ interface BitcoinApi {
     suspend fun getAddressInfo(@Path("address") address: String) : AddressInfoResponse
 
     @GET("address/{address}/txs")
-    suspend fun getTransactions(@Path("address") address: String) : List<TransactionResponse>
+    suspend fun getTransactions(@Path("address") address: String) : List<TransactionDTO>
 
     @POST("tx")
     suspend fun sendTransaction(@Body transactionHex: String): Response<String>
