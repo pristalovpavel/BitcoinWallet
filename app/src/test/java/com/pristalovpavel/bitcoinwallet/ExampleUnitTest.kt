@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet
+package com.pristalovpavel.bitcoinwallet
 
 import org.junit.Test
 

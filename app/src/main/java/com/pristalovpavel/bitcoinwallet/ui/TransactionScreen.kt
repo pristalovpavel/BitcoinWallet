@@ -1,11 +1,14 @@
-package com.pristalovpavel.bitcionwallet.ui
+package com.pristalovpavel.bitcoinwallet.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,15 +42,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.pristalovpavel.bitcionwallet.R
-import com.pristalovpavel.bitcionwallet.model.TransactionDTO
-import com.pristalovpavel.bitcionwallet.model.TransactionType
-import com.pristalovpavel.bitcionwallet.model.TransactionType.EXPENSE
-import com.pristalovpavel.bitcionwallet.model.TransactionType.INCOME
-import com.pristalovpavel.bitcionwallet.model.TransactionType.SELF_TRANSFER
-import com.pristalovpavel.bitcionwallet.model.TransactionType.UNKNOWN
-import com.pristalovpavel.bitcionwallet.utils.readDataFromFile
-import com.pristalovpavel.bitcionwallet.viewmodel.BitcoinViewModel
+import com.pristalovpavel.bitcoinwallet.R
+import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
+import com.pristalovpavel.bitcoinwallet.model.TransactionType
+import com.pristalovpavel.bitcoinwallet.model.TransactionType.EXPENSE
+import com.pristalovpavel.bitcoinwallet.model.TransactionType.INCOME
+import com.pristalovpavel.bitcoinwallet.model.TransactionType.SELF_TRANSFER
+import com.pristalovpavel.bitcoinwallet.model.TransactionType.UNKNOWN
+import com.pristalovpavel.bitcoinwallet.utils.getShortAddress
+import com.pristalovpavel.bitcoinwallet.utils.readDataFromFile
+import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
 
 @Composable
 fun TransactionScreen(
@@ -125,7 +129,11 @@ fun TransactionScreen(
                         .background(MaterialTheme.colorScheme.background)
                 ) {
                     items(transactions) { transaction ->
-                        TransactionRow(transaction, ownAddresses)
+                        TransactionRow(transaction, ownAddresses) {
+                            val url = "https://mempool.space/signet/tx/${transaction.txId}"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            context.startActivity(intent)
+                        }
                         HorizontalDivider()
                     }
                 }
@@ -138,7 +146,11 @@ fun TransactionScreen(
 }
 
 @Composable
-fun TransactionRow(transaction: TransactionDTO, ownAddresses: Set<String>) {
+fun TransactionRow(
+    transaction: TransactionDTO,
+    ownAddresses: Set<String>,
+    onClick: () -> Unit
+    ) {
     val isOutgoing = transaction.vIn.any { input ->
         input.prevOut.scriptPublicKeyAddress in ownAddresses
     }
@@ -172,12 +184,32 @@ fun TransactionRow(transaction: TransactionDTO, ownAddresses: Set<String>) {
     }
 
     val amountInmBtc = amount / 100_000.0
-    val shortTxId = transaction.txId.take(7) + "..." + transaction.txId.takeLast(7)
+
+    val transactionAddressText = when (transactionType) {
+        INCOME -> {
+            val senderAddress = transaction.vIn.firstOrNull { input ->
+                input.prevOut.scriptPublicKeyAddress !in ownAddresses
+            }?.prevOut?.scriptPublicKeyAddress
+
+            if (senderAddress != null) "From: ${getShortAddress(senderAddress)}" else null
+        }
+        EXPENSE -> {
+            val receiverAddress = transaction.vOut.firstOrNull { out ->
+                out.scriptPublicKeyAddress !in ownAddresses
+            }?.scriptPublicKeyAddress
+
+            if (receiverAddress != null) "To: ${getShortAddress(receiverAddress)}" else null
+        }
+        else -> null  // For "SELF_TRANSFER" and "UNKNOWN"
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .clickable {
+                onClick()
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -200,10 +232,12 @@ fun TransactionRow(transaction: TransactionDTO, ownAddresses: Set<String>) {
 
             Column {
                 Text(text = transactionType.title, style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = "From: $shortTxId",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                transactionAddressText?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
 
@@ -213,4 +247,6 @@ fun TransactionRow(transaction: TransactionDTO, ownAddresses: Set<String>) {
             style = MaterialTheme.typography.titleMedium
         )
     }
+
+
 }

@@ -1,6 +1,7 @@
-package com.pristalovpavel.bitcionwallet.repository
+package com.pristalovpavel.bitcoinwallet.repository
 
-import com.pristalovpavel.bitcionwallet.api.BitcoinApi
+import com.pristalovpavel.bitcoinwallet.api.BitcoinApi
+import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.bitcoinj.base.AddressParser
@@ -32,7 +33,7 @@ class BitcoinRepository(private val api: BitcoinApi) {
         }
     }
 
-    suspend fun getTransactions(address: String): Result<List<com.pristalovpavel.bitcionwallet.model.TransactionDTO>> {
+    suspend fun getTransactions(address: String): Result<List<TransactionDTO>> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = api.getTransactions(address)
@@ -131,33 +132,5 @@ class BitcoinRepository(private val api: BitcoinApi) {
                 Result.failure(e)
             }
         }
-    }
-
-    suspend fun getBalanceFromTransactions(
-        transactions: List<com.pristalovpavel.bitcionwallet.model.TransactionDTO>,
-        address: String
-    ): Long {
-        var balance = 0L
-
-        transactions.forEach { tx ->
-            tx.vOut.forEach { vOut ->
-                // Check if this vout is for my address
-                if (vOut.scriptPublicKeyAddress == address) {
-                    // Check if it was spent
-                    val isSpent = transactions.any { txIn ->
-                        txIn.vIn.any { vin ->
-                            vin.txId == tx.txId && vin.vOut == tx.vOut.indexOf(vOut)
-                        }
-                    }
-
-                    // if trx haven't spent, add it
-                    if (!isSpent) {
-                        balance += vOut.value
-                    }
-                }
-            }
-        }
-
-        return balance
     }
 }

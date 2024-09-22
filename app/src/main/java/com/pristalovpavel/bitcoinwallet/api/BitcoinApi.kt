@@ -1,7 +1,7 @@
-package com.pristalovpavel.bitcionwallet.api
+package com.pristalovpavel.bitcoinwallet.api
 
-import com.pristalovpavel.bitcionwallet.model.AddressInfoResponse
-import com.pristalovpavel.bitcionwallet.model.TransactionDTO
+import com.pristalovpavel.bitcoinwallet.model.AddressInfoResponse
+import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response

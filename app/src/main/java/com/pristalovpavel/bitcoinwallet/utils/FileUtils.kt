@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet.utils
+package com.pristalovpavel.bitcoinwallet.utils
 
 import android.content.Context
 import java.io.BufferedReader

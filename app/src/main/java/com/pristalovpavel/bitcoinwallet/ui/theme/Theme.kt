@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet.ui.theme
+package com.pristalovpavel.bitcoinwallet.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

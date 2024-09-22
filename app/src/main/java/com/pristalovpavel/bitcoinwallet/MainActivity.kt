@@ -1,16 +1,16 @@
-package com.pristalovpavel.bitcionwallet
+package com.pristalovpavel.bitcoinwallet
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModelProvider
-import com.pristalovpavel.bitcionwallet.api.BitcoinApi
-import com.pristalovpavel.bitcionwallet.repository.BitcoinRepository
-import com.pristalovpavel.bitcionwallet.ui.BitcoinWalletApp
-import com.pristalovpavel.bitcionwallet.ui.theme.BitcoinWalletTheme
-import com.pristalovpavel.bitcionwallet.viewmodel.BitcoinViewModel
-import com.pristalovpavel.bitcionwallet.viewmodel.BitcoinViewModelFactory
+import com.pristalovpavel.bitcoinwallet.api.BitcoinApi
+import com.pristalovpavel.bitcoinwallet.repository.BitcoinRepository
+import com.pristalovpavel.bitcoinwallet.ui.BitcoinWalletApp
+import com.pristalovpavel.bitcoinwallet.ui.theme.BitcoinWalletTheme
+import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
+import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

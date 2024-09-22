@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet.ui
+package com.pristalovpavel.bitcoinwallet.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

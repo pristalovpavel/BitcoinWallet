@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet.api
+package com.pristalovpavel.bitcoinwallet.api
 
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody

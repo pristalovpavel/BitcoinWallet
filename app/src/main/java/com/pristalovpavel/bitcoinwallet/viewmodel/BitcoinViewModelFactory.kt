@@ -1,8 +1,8 @@
-package com.pristalovpavel.bitcionwallet.viewmodel
+package com.pristalovpavel.bitcoinwallet.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.pristalovpavel.bitcionwallet.repository.BitcoinRepository
+import com.pristalovpavel.bitcoinwallet.repository.BitcoinRepository
 
 class BitcoinViewModelFactory(private val repository: BitcoinRepository): ViewModelProvider.Factory{
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

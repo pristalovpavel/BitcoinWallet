@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet.ui
+package com.pristalovpavel.bitcoinwallet.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,9 +26,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.pristalovpavel.bitcionwallet.ui.theme.BitcoinWalletTheme
-import com.pristalovpavel.bitcionwallet.utils.readDataFromFile
-import com.pristalovpavel.bitcionwallet.viewmodel.BitcoinViewModel
+import com.pristalovpavel.bitcoinwallet.ui.theme.BitcoinWalletTheme
+import com.pristalovpavel.bitcoinwallet.utils.readDataFromFile
+import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +70,7 @@ fun BitcoinWalletApp(bitcoinViewModel: BitcoinViewModel) {
                                         contentDescription = "Back"
                                     )
                                 }
-                            } else null
+                            }
                         },
                         colors = TopAppBarDefaults.mediumTopAppBarColors(
                             containerColor = MaterialTheme.colorScheme.primary,

@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BitcionWallet"
+rootProject.name = "BitcoinWallet"
 include(":app")
  

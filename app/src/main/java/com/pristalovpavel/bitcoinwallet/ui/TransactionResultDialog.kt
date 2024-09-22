@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet.ui
+package com.pristalovpavel.bitcoinwallet.ui
 
 import android.content.Intent
 import android.net.Uri

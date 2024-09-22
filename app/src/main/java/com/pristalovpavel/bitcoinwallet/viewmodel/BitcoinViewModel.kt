@@ -1,10 +1,10 @@
-package com.pristalovpavel.bitcionwallet.viewmodel
+package com.pristalovpavel.bitcoinwallet.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pristalovpavel.bitcionwallet.model.TransactionDTO
-import com.pristalovpavel.bitcionwallet.model.Utxo
-import com.pristalovpavel.bitcionwallet.repository.BitcoinRepository
+import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
+import com.pristalovpavel.bitcoinwallet.model.Utxo
+import com.pristalovpavel.bitcoinwallet.repository.BitcoinRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

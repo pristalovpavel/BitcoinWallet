@@ -1,4 +1,4 @@
-package com.pristalovpavel.bitcionwallet.ui.theme
+package com.pristalovpavel.bitcoinwallet.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
