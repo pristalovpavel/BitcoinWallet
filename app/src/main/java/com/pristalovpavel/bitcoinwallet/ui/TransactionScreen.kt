@@ -44,12 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.pristalovpavel.bitcoinwallet.R
 import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
-import com.pristalovpavel.bitcoinwallet.model.TransactionType
-import com.pristalovpavel.bitcoinwallet.model.TransactionType.EXPENSE
 import com.pristalovpavel.bitcoinwallet.model.TransactionType.INCOME
-import com.pristalovpavel.bitcoinwallet.model.TransactionType.SELF_TRANSFER
-import com.pristalovpavel.bitcoinwallet.model.TransactionType.UNKNOWN
-import com.pristalovpavel.bitcoinwallet.utils.getShortAddress
 import com.pristalovpavel.bitcoinwallet.utils.readDataFromFile
 import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
 
@@ -129,7 +124,7 @@ fun TransactionScreen(
                         .background(MaterialTheme.colorScheme.background)
                 ) {
                     items(transactions) { transaction ->
-                        TransactionRow(transaction, ownAddresses) {
+                        TransactionRow(viewModel, transaction, ownAddresses) {
                             val url = "https://mempool.space/signet/tx/${transaction.txId}"
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             context.startActivity(intent)
@@ -147,69 +142,19 @@ fun TransactionScreen(
 
 @Composable
 fun TransactionRow(
+    viewModel: BitcoinViewModel,
     transaction: TransactionDTO,
     ownAddresses: Set<String>,
     onClick: () -> Unit
     ) {
-    val isOutgoing = transaction.vIn.any { input ->
-        input.prevOut.scriptPublicKeyAddress in ownAddresses
-    }
 
-    val hasOutputToOthers = transaction.vOut.any { out ->
-        out.scriptPublicKeyAddress !in ownAddresses
-    }
-
-    val isIncoming = !isOutgoing && transaction.vOut.any { out ->
-        out.scriptPublicKeyAddress in ownAddresses
-    }
-
-    val transactionType: TransactionType = when {
-        isOutgoing && hasOutputToOthers -> EXPENSE
-        isIncoming -> INCOME
-        isOutgoing && !hasOutputToOthers -> SELF_TRANSFER
-        else -> UNKNOWN
-    }
-
-    val amount: Long = when (transactionType) {
-        EXPENSE -> transaction.vOut
-            .filter { it.scriptPublicKeyAddress !in ownAddresses }
-            .sumOf { it.value } + transaction.fee
-
-        INCOME -> transaction.vOut
-            .filter { it.scriptPublicKeyAddress in ownAddresses }
-            .sumOf { it.value }
-
-        SELF_TRANSFER -> 0L
-        else -> 0L
-    }
-
-    val amountInmBtc = amount / 100_000.0
-
-    val transactionAddressText = when (transactionType) {
-        INCOME -> {
-            val senderAddress = transaction.vIn.firstOrNull { input ->
-                input.prevOut.scriptPublicKeyAddress !in ownAddresses
-            }?.prevOut?.scriptPublicKeyAddress
-
-            if (senderAddress != null) "From: ${getShortAddress(senderAddress)}" else null
-        }
-        EXPENSE -> {
-            val receiverAddress = transaction.vOut.firstOrNull { out ->
-                out.scriptPublicKeyAddress !in ownAddresses
-            }?.scriptPublicKeyAddress
-
-            if (receiverAddress != null) "To: ${getShortAddress(receiverAddress)}" else null
-        }
-        else -> null  // For "SELF_TRANSFER" and "UNKNOWN"
-    }
+    val transactionDisplayData = viewModel.getTransactionDisplayData(transaction, ownAddresses)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable {
-                onClick()
-            },
+            .clickable { onClick() },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -218,7 +163,7 @@ fun TransactionRow(
         ) {
             Image(
                 painter = painterResource(
-                    id = if (transactionType == INCOME)
+                    id = if (transactionDisplayData.transactionType == INCOME)
                         R.drawable.ic_arrow_circle_down
                     else
                         R.drawable.ic_arrow_circle_up
@@ -231,8 +176,8 @@ fun TransactionRow(
             Spacer(modifier = Modifier.width(8.dp))
 
             Column {
-                Text(text = transactionType.title, style = MaterialTheme.typography.bodyMedium)
-                transactionAddressText?.let {
+                Text(text = transactionDisplayData.transactionType.title, style = MaterialTheme.typography.bodyMedium)
+                transactionDisplayData.transactionAddressText?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall
@@ -242,11 +187,9 @@ fun TransactionRow(
         }
 
         Text(
-            text = "$amountInmBtc mBTC",
-            color = transactionType.color,
+            text = "${transactionDisplayData.amountInmBtc} mBTC",
+            color = transactionDisplayData.transactionType.color,
             style = MaterialTheme.typography.titleMedium
         )
     }
-
-
 }

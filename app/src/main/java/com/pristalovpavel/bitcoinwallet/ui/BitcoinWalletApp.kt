@@ -106,6 +106,9 @@ fun BitcoinWalletApp(bitcoinViewModel: BitcoinViewModel) {
                                 onSendMoreClick = {
                                     bitcoinViewModel.loadBalance(myAddress)
                                 },
+                                onDialogDismiss = {
+                                    bitcoinViewModel.resetTransactionStatus()
+                                }
                             )
                         }
                     }

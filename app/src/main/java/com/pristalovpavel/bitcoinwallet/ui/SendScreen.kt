@@ -10,7 +10,8 @@ fun SendScreen(
     balanceState: Result<Long>,
     transactionStatus: Result<String>,
     onSendClick: (String, String) -> Unit,
-    onSendMoreClick: () -> Unit
+    onSendMoreClick: () -> Unit,
+    onDialogDismiss: () -> Unit
 ) {
     val showDialog = remember { mutableStateOf(false) }
     val transactionId = remember { mutableStateOf("") }
@@ -41,6 +42,7 @@ fun SendScreen(
             onDismiss = {
                 showDialog.value = false
                 onSendMoreClick()
+                onDialogDismiss()
             }
         )
     }

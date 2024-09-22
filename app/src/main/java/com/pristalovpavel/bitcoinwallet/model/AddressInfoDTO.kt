@@ -2,7 +2,7 @@ package com.pristalovpavel.bitcoinwallet.model
 
 import com.google.gson.annotations.SerializedName
 
-data class AddressInfoResponse(
+data class AddressInfoDTO (
     @SerializedName("chain_stats")
     val chainStats: ChainStats
 )

@@ -1,6 +1,6 @@
 package com.pristalovpavel.bitcoinwallet.api
 
-import com.pristalovpavel.bitcoinwallet.model.AddressInfoResponse
+import com.pristalovpavel.bitcoinwallet.model.AddressInfoDTO
 import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -14,7 +14,7 @@ import retrofit2.http.Path
 
 interface BitcoinApi {
     @GET("address/{address}")
-    suspend fun getAddressInfo(@Path("address") address: String) : AddressInfoResponse
+    suspend fun getAddressInfo(@Path("address") address: String) : AddressInfoDTO
 
     @GET("address/{address}/txs")
     suspend fun getTransactions(@Path("address") address: String) : List<TransactionDTO>
