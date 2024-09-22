@@ -20,12 +20,13 @@ class MainActivity : ComponentActivity() {
         // should be in DI normally
         val api = BitcoinApi.create()
         val repository = BitcoinRepository(api)
-        val viewModelFactory = BitcoinViewModelFactory(repository)
-        val viewModel = ViewModelProvider(this, viewModelFactory)[BitcoinViewModel::class.java]
+
+        val bitcoinViewModelFactory = BitcoinViewModelFactory(repository)
+        val bitcoinViewModel = ViewModelProvider(this, bitcoinViewModelFactory)[BitcoinViewModel::class.java]
 
         setContent {
             BitcoinWalletTheme {
-                BitcoinWalletApp(viewModel = viewModel)
+                BitcoinWalletApp(bitcoinViewModel = bitcoinViewModel)
             }
         }
     }

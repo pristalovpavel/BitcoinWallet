@@ -8,13 +8,10 @@ fun readDataFromFile(context: Context, fileName: String): String {
     return try {
         val inputStream = context.assets.open(fileName)
         val reader = BufferedReader(InputStreamReader(inputStream))
-        val privateKey = reader.readLine()
-        reader.close()
-
-        privateKey
+        val data = reader.use { it.readText() }
+        data
     } catch (e: Exception) {
         e.printStackTrace()
-
         ""
     }
 }
