@@ -56,6 +56,7 @@ fun TransactionScreen(
 ) {
     val context = LocalContext.current
     val transactionsState by viewModel.transactions.collectAsState()
+    val balanceState by viewModel.balance.collectAsState()
 
     val ownAddresses = remember {
         readDataFromFile(context, "change_addresses.txt")
@@ -83,6 +84,9 @@ fun TransactionScreen(
                 .fillMaxWidth()
                 .height(100.dp)
         )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        BalanceText(balanceState = balanceState)
 
         Spacer(modifier = Modifier.height(16.dp))
 

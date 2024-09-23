@@ -17,12 +17,6 @@ fun SendScreen(
     val transactionId = remember { mutableStateOf("") }
     val errorMessage = remember { mutableStateOf("") }
 
-    val balance = when {
-        balanceState.isSuccess -> (balanceState.getOrNull() ?: 0L).toString()
-        balanceState.isFailure -> "Error"
-        else -> "Loading"
-    }
-
     LaunchedEffect(transactionStatus) {
         if (transactionStatus.isSuccess && transactionStatus.getOrNull()?.isNotEmpty() == true) {
             transactionId.value = transactionStatus.getOrNull() ?: ""
@@ -33,7 +27,7 @@ fun SendScreen(
         }
     }
 
-    SendScreenContent(balance = balance, onSendClick = onSendClick)
+    SendScreenContent(balanceState = balanceState, onSendClick = onSendClick)
 
     if (showDialog.value) {
         TransactionResultDialog(

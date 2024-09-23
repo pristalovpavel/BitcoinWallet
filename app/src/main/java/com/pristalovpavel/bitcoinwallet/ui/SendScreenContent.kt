@@ -18,12 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun SendScreenContent(balance: String, onSendClick: (String, String) -> Unit) {
+fun SendScreenContent(balanceState: Result<Long>, onSendClick: (String, String) -> Unit) {
     var amount by remember { mutableStateOf("1900") }
     var address by remember { mutableStateOf("tb1q9uxwr8qny8scmqw6n6t5ll9dfpms0yz606fd50") }
 
@@ -38,7 +37,7 @@ fun SendScreenContent(balance: String, onSendClick: (String, String) -> Unit) {
         Text(text = "Bitcoin wallet", fontSize = 24.sp)
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(text = "Balance: $balance ssats", fontSize = 18.sp)
+        BalanceText(balanceState = balanceState)
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
@@ -63,10 +62,4 @@ fun SendScreenContent(balance: String, onSendClick: (String, String) -> Unit) {
             Text(text = "Send")
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewMainScreen() {
-    SendScreenContent(balance = "0.0") { _, _ -> }
 }
