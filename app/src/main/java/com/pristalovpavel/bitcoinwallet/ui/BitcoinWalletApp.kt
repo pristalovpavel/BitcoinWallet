@@ -37,13 +37,19 @@ fun BitcoinWalletApp(bitcoinViewModel: BitcoinViewModel) {
     val navController = rememberNavController()
 
     val privateKey = remember { readDataFromFile(context = context, "private_key.txt") }
-    val myAddress = remember { readDataFromFile(context = context, "my_address.txt") }
+    val myAddress by bitcoinViewModel.myAddress.collectAsState()
 
     val balanceState by bitcoinViewModel.balance.collectAsState()
     val transactionStatus by bitcoinViewModel.transactionStatus.collectAsState()
 
     LaunchedEffect(Unit) {
-        bitcoinViewModel.loadBalance(myAddress)
+        bitcoinViewModel.loadAddressData(context)
+    }
+
+    LaunchedEffect(myAddress) {
+        if (myAddress.isNotEmpty()) {
+            bitcoinViewModel.loadBalance(myAddress)
+        }
     }
 
     BitcoinWalletTheme {
@@ -87,8 +93,7 @@ fun BitcoinWalletApp(bitcoinViewModel: BitcoinViewModel) {
                         composable("transactionScreen") {
                             TransactionScreen(
                                 navController = navController,
-                                viewModel = bitcoinViewModel,
-                                walletAddress = myAddress
+                                viewModel = bitcoinViewModel
                             )
                         }
                         composable("sendScreen") {

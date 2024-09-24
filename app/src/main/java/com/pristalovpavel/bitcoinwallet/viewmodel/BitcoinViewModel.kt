@@ -9,6 +9,7 @@ import com.pristalovpavel.bitcoinwallet.model.TransactionType
 import com.pristalovpavel.bitcoinwallet.model.Utxo
 import com.pristalovpavel.bitcoinwallet.repository.BitcoinRepository
 import com.pristalovpavel.bitcoinwallet.utils.getShortAddress
+import com.pristalovpavel.bitcoinwallet.utils.readDataFromFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,8 +39,27 @@ class BitcoinViewModel(private val repository: BitcoinRepository) : ViewModel() 
         MutableStateFlow<Result<List<TransactionDTO>>>(Result.success(emptyList()))
     val transactions: StateFlow<Result<List<TransactionDTO>>> = _transactions
 
+    private val _myAddress = MutableStateFlow("")
+    val myAddress: StateFlow<String> = _myAddress.asStateFlow()
+
+    private val _ownAddresses = MutableStateFlow<Set<String>>(emptySet())
+    val ownAddresses: StateFlow<Set<String>> = _ownAddresses.asStateFlow()
+
     private val feeAmount = 250L
     private val dustThreshold = 300L
+
+    fun loadAddressData(context: android.content.Context) {
+        viewModelScope.launch {
+            val addressesList = readDataFromFile(context = context, "addresses.txt")
+                .split("\r\n", "\n")
+
+            if(addressesList.isEmpty()) return@launch
+
+            _myAddress.value = addressesList[0]
+
+            _ownAddresses.value = addressesList.toSet()
+        }
+    }
 
     fun loadBalance(address: String) {
         viewModelScope.launch {

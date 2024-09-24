@@ -51,17 +51,14 @@ import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
 @Composable
 fun TransactionScreen(
     navController: NavController,
-    viewModel: BitcoinViewModel,
-    walletAddress: String
+    viewModel: BitcoinViewModel
 ) {
     val context = LocalContext.current
     val transactionsState by viewModel.transactions.collectAsState()
     val balanceState by viewModel.balance.collectAsState()
 
-    val ownAddresses = remember {
-        readDataFromFile(context, "change_addresses.txt")
-            .split("\r\n", "\n").toSet()
-    }
+    val walletAddress by viewModel.myAddress.collectAsState()
+    val ownAddresses by viewModel.ownAddresses.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadTransactions(walletAddress)
