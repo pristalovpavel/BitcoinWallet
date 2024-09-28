@@ -2,8 +2,10 @@ package com.pristalovpavel.bitcoinwallet.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 
 @Composable
 fun SendScreen(
@@ -17,12 +19,14 @@ fun SendScreen(
     val transactionId = remember { mutableStateOf("") }
     val errorMessage = remember { mutableStateOf("") }
 
-    LaunchedEffect(transactionStatus) {
-        if (transactionStatus.isSuccess && transactionStatus.getOrNull()?.isNotEmpty() == true) {
-            transactionId.value = transactionStatus.getOrNull() ?: ""
+    val currentTransactionStatus by rememberUpdatedState(newValue = transactionStatus)
+
+    LaunchedEffect(currentTransactionStatus) {
+        if (currentTransactionStatus.isSuccess && currentTransactionStatus.getOrNull()?.isNotEmpty() == true) {
+            transactionId.value = currentTransactionStatus.getOrNull() ?: ""
             showDialog.value = true
-        } else if (transactionStatus.isFailure) {
-            errorMessage.value = transactionStatus.exceptionOrNull()?.message ?: "Transaction Failed"
+        } else if (currentTransactionStatus.isFailure) {
+            errorMessage.value = currentTransactionStatus.exceptionOrNull()?.message ?: "Transaction Failed"
             showDialog.value = true
         }
     }

@@ -30,10 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -43,9 +41,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.pristalovpavel.bitcoinwallet.R
-import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
+import com.pristalovpavel.bitcoinwallet.model.TransactionDisplayData
 import com.pristalovpavel.bitcoinwallet.model.TransactionType.INCOME
-import com.pristalovpavel.bitcoinwallet.utils.readDataFromFile
 import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
 
 @Composable
@@ -59,10 +56,6 @@ fun TransactionScreen(
 
     val walletAddress by viewModel.myAddress.collectAsState()
     val ownAddresses by viewModel.ownAddresses.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.loadTransactions(walletAddress)
-    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -117,40 +110,51 @@ fun TransactionScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        transactionsState.fold(
-            onSuccess = { transactions ->
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
-                    items(transactions) { transaction ->
-                        TransactionRow(viewModel, transaction, ownAddresses) {
-                            val url = "https://mempool.space/signet/tx/${transaction.txId}"
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            context.startActivity(intent)
+        when {
+            transactionsState.isSuccess -> {
+                val transactions = transactionsState.getOrNull() ?: emptyList()
+                if (transactions.isEmpty()) {
+                    Text(text = "No transactions")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                    ) {
+                        items(transactions) { transaction ->
+                            val transactionDisplayData =
+                                viewModel.getTransactionDisplayData(transaction, ownAddresses)
+                            TransactionRow(
+                                transactionDisplayData = transactionDisplayData,
+                                onClick = {
+                                    val url = "https://mempool.space/signet/tx/${transaction.txId}"
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    context.startActivity(intent)
+                                }
+                            )
+                            HorizontalDivider()
                         }
-                        HorizontalDivider()
                     }
                 }
-            },
-            onFailure = {
-                Text(text = "Error loading transactions")
             }
-        )
+
+            transactionsState.isFailure -> {
+                val exception = transactionsState.exceptionOrNull()
+                Text(text = "Error loading transactions: ${exception?.message}")
+            }
+
+            else -> {
+                Text(text = "Loading...")
+            }
+        }
     }
 }
 
 @Composable
 fun TransactionRow(
-    viewModel: BitcoinViewModel,
-    transaction: TransactionDTO,
-    ownAddresses: Set<String>,
+    transactionDisplayData: TransactionDisplayData,
     onClick: () -> Unit
-    ) {
-
-    val transactionDisplayData = viewModel.getTransactionDisplayData(transaction, ownAddresses)
-
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -177,7 +181,10 @@ fun TransactionRow(
             Spacer(modifier = Modifier.width(8.dp))
 
             Column {
-                Text(text = transactionDisplayData.transactionType.title, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = transactionDisplayData.transactionType.title,
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 transactionDisplayData.transactionAddressText?.let {
                     Text(
                         text = it,

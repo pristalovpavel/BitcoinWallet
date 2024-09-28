@@ -33,22 +33,16 @@ import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BitcoinWalletApp(bitcoinViewModel: BitcoinViewModel) {
-    val context = LocalContext.current
     val navController = rememberNavController()
 
-    val privateKey = remember { readDataFromFile(context = context, "private_key.txt") }
     val myAddress by bitcoinViewModel.myAddress.collectAsState()
-
     val balanceState by bitcoinViewModel.balance.collectAsState()
     val transactionStatus by bitcoinViewModel.transactionStatus.collectAsState()
 
-    LaunchedEffect(Unit) {
-        bitcoinViewModel.loadAddressData(context)
-    }
-
     LaunchedEffect(myAddress) {
         if (myAddress.isNotEmpty()) {
-            bitcoinViewModel.loadBalance(myAddress)
+            bitcoinViewModel.loadBalance()
+            bitcoinViewModel.loadTransactions()
         }
     }
 
@@ -102,14 +96,12 @@ fun BitcoinWalletApp(bitcoinViewModel: BitcoinViewModel) {
                                 transactionStatus = transactionStatus,
                                 onSendClick = { amount, address ->
                                     bitcoinViewModel.sendBitcoinTransaction(
-                                        myAddress,
-                                        privateKey,
-                                        address,
-                                        amount.trim().toLong()
+                                        destinationAddress = address,
+                                        amount = amount.trim().toLong()
                                     )
                                 },
                                 onSendMoreClick = {
-                                    bitcoinViewModel.loadBalance(myAddress)
+                                    bitcoinViewModel.loadBalance()
                                 },
                                 onDialogDismiss = {
                                     bitcoinViewModel.resetTransactionStatus()

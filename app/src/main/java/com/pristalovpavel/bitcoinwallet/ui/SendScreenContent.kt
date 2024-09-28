@@ -34,6 +34,11 @@ fun SendScreenContent(
     var amount by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
 
+    var amountError by remember { mutableStateOf<String?>(null) }
+    var addressError by remember { mutableStateOf<String?>(null) }
+
+    val isFormValid = amount.isNotBlank() && address.isNotBlank() && amountError == null && addressError == null
+
     Column (
         modifier = Modifier
             .fillMaxSize()
@@ -58,22 +63,47 @@ fun SendScreenContent(
 
         OutlinedTextField(
             value = amount,
-            onValueChange = { amount = it },
+            onValueChange = {
+                amount = it
+                amountError = when {
+                    it.isBlank() -> "Amount is required"
+                    it.toLongOrNull() == null || it.toLong() <= 0 -> "Enter a valid amount"
+                    else -> null
+                }
+            },
             label = { Text(text = "Amount to send") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = amountError != null,
+            supportingText = {
+                if (amountError != null) {
+                    Text(text = amountError!!)
+                }
+            }
         )
-        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = address,
-            onValueChange = { address = it },
+            onValueChange = {
+                address = it
+                addressError = if (it.isBlank()) {
+                    "Address is required"
+                } else {
+                    null
+                }
+            },
             label = { Text(text = "Address to send") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = addressError != null,
+            supportingText = {
+                if (addressError != null) {
+                    Text(text = addressError!!)
+                }
+            }
         )
-        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { onSendClick(amount, address) }
+            onClick = { onSendClick(amount.trim(), address.trim()) },
+            enabled = isFormValid
         ) {
             Text(text = "Send")
         }

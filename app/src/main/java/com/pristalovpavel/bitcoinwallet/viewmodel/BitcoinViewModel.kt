@@ -1,5 +1,6 @@
 package com.pristalovpavel.bitcoinwallet.viewmodel
 
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pristalovpavel.bitcoinwallet.model.TransactionDTO
@@ -9,7 +10,7 @@ import com.pristalovpavel.bitcoinwallet.model.TransactionType
 import com.pristalovpavel.bitcoinwallet.model.Utxo
 import com.pristalovpavel.bitcoinwallet.repository.BitcoinRepository
 import com.pristalovpavel.bitcoinwallet.utils.getShortAddress
-import com.pristalovpavel.bitcoinwallet.utils.readDataFromFile
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,57 +27,72 @@ import org.bitcoinj.core.TransactionOutPoint
 import org.bitcoinj.core.TransactionWitness
 import org.bitcoinj.crypto.DumpedPrivateKey
 import org.bitcoinj.script.ScriptBuilder
+import javax.inject.Inject
 
-class BitcoinViewModel(private val repository: BitcoinRepository) : ViewModel() {
+@HiltViewModel
+class BitcoinViewModel @Inject constructor(
+    private val repository: BitcoinRepository
+) : ViewModel() {
 
     private val _balance = MutableStateFlow(Result.success(0L))
     val balance: StateFlow<Result<Long>> = _balance.asStateFlow()
 
-    private val _transactionStatus = MutableStateFlow(Result.success(""))
+    @VisibleForTesting
+    internal val _transactionStatus = MutableStateFlow(Result.success(""))
     val transactionStatus: StateFlow<Result<String>> = _transactionStatus
 
     private val _transactions =
         MutableStateFlow<Result<List<TransactionDTO>>>(Result.success(emptyList()))
     val transactions: StateFlow<Result<List<TransactionDTO>>> = _transactions
 
-    private val _myAddress = MutableStateFlow("")
+    @VisibleForTesting
+    internal val _myAddress = MutableStateFlow("")
     val myAddress: StateFlow<String> = _myAddress.asStateFlow()
 
     private val _ownAddresses = MutableStateFlow<Set<String>>(emptySet())
     val ownAddresses: StateFlow<Set<String>> = _ownAddresses.asStateFlow()
 
+    private lateinit var privateKey: String
+
     private val feeAmount = 250L
     private val dustThreshold = 300L
 
-    fun loadAddressData(context: android.content.Context) {
-        viewModelScope.launch {
-            val addressesList = readDataFromFile(context = context, "addresses.txt")
-                .split("\r\n", "\n")
-
-            if(addressesList.isEmpty()) return@launch
-
-            _myAddress.value = addressesList[0]
-
-            _ownAddresses.value = addressesList.toSet()
-        }
+    init {
+        loadAddressData()
     }
 
-    fun loadBalance(address: String) {
+    private fun loadAddressData() {
+        val addressesList = repository.loadAddresses()
+        if (addressesList.isNotEmpty()) {
+            _myAddress.value = addressesList[0]
+            _ownAddresses.value = addressesList.toSet()
+        }
+        privateKey = repository.loadPrivateKey()
+    }
+
+    fun loadBalance() {
         viewModelScope.launch {
-            val result = repository.getBalance(address)
-            _balance.value = result
+            val address = myAddress.value
+            if (address.isNotEmpty()) {
+                val result = repository.getBalance(address)
+                _balance.value = result
+            }
         }
     }
 
     fun sendBitcoinTransaction(
-        myAddress: String,
-        privateKey: String,
         destinationAddress: String,
         amount: Long
     ) {
         viewModelScope.launch {
             try {
-                val transactions = repository.getTransactions(myAddress)
+                val address = myAddress.value
+                if (address.isEmpty()) {
+                    _transactionStatus.value =
+                        Result.failure(Exception("Sender's address hasn't loaded"))
+                    return@launch
+                }
+                val transactions = repository.getTransactions(address)
                 if (transactions.isFailure) {
                     _transactionStatus.value =
                         Result.failure(Exception("Failed to fetch transactions"))
@@ -105,14 +121,20 @@ class BitcoinViewModel(private val repository: BitcoinRepository) : ViewModel() 
         }
     }
 
-    fun loadTransactions(address: String) {
+    fun loadTransactions() {
         viewModelScope.launch {
-            val result = repository.getTransactions(address)
-            _transactions.value = result
+            val address = myAddress.value
+            if (address.isNotEmpty()) {
+                val result = repository.getTransactions(address)
+                _transactions.value = result
+            }
         }
     }
 
-    fun getTransactionDisplayData(transaction: TransactionDTO, ownAddresses: Set<String>): TransactionDisplayData {
+    fun getTransactionDisplayData(
+        transaction: TransactionDTO,
+        ownAddresses: Set<String>
+    ): TransactionDisplayData {
         val isOutgoing = transaction.vIn.any { input ->
             input.prevOut.scriptPublicKeyAddress in ownAddresses
         }
@@ -155,6 +177,7 @@ class BitcoinViewModel(private val repository: BitcoinRepository) : ViewModel() 
 
                 if (senderAddress != null) "From: ${getShortAddress(senderAddress)}" else null
             }
+
             TransactionType.EXPENSE -> {
                 val receiverAddress = transaction.vOut.firstOrNull { out ->
                     out.scriptPublicKeyAddress !in ownAddresses
@@ -162,6 +185,7 @@ class BitcoinViewModel(private val repository: BitcoinRepository) : ViewModel() 
 
                 if (receiverAddress != null) "To: ${getShortAddress(receiverAddress)}" else null
             }
+
             else -> null
         }
 
@@ -239,7 +263,8 @@ class BitcoinViewModel(private val repository: BitcoinRepository) : ViewModel() 
         // UTXO - transaction from which we spend
         val utxo = Sha256Hash.wrap(params.utxo.txId)
         val outPoint = TransactionOutPoint(params.utxo.vOutIndex, utxo)
-        val input = TransactionInput(transaction, byteArrayOf(), outPoint, Coin.valueOf(params.utxo.value))
+        val input =
+            TransactionInput(transaction, byteArrayOf(), outPoint, Coin.valueOf(params.utxo.value))
 
         // Add input. Important: need to add it after adding of outputs
         transaction.addInput(input)
