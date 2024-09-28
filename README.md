@@ -4,16 +4,10 @@ A simple Bitcoin wallet application for Android for the Bitcoin (Signet) network
 
 ## Features
 
-- **View Balance**: Check your Bitcoin balance in mBTC.
-- **Send Transactions**: Send Bitcoin to other addresses.
-- **Transaction History**: View a list of your incoming and outgoing transactions.
+- **View Balance**
+- **Send Transactions**
+- **Transaction History**
 
-## Prerequisites
-
-Before running the app, ensure you have the following:
-
-1. **Android Studio**: Installed and set up on your machine.
-2. **Bitcoin Signet Network Access**: The app is configured to work with the Signet test network.
 
 ## Setup Instructions
 
@@ -28,12 +22,6 @@ Before running the app, ensure you have the following:
 
 ### Path: `app/src/main/assets/`
 
-4. **Build the Project**:
-    - Sync Gradle files if prompted.
-    - Click on **Build > Make Project** or press `Ctrl+F9`.
-5. **Run the App**:
-    - Connect your Android device or start an emulator.
-    - Click on **Run > Run 'app'** or press `Shift+F10`.
 
 ## Usage
 
