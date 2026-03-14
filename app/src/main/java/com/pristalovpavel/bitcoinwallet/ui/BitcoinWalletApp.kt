@@ -72,7 +72,7 @@ fun BitcoinWalletApp(bitcoinViewModel: BitcoinViewModel) {
                                 }
                             }
                         },
-                        colors = TopAppBarDefaults.mediumTopAppBarColors(
+                        colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             titleContentColor = MaterialTheme.colorScheme.onPrimary
                         )

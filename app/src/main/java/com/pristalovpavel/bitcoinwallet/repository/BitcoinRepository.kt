@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 class BitcoinRepository @Inject constructor(
     private val api: BitcoinApi,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     suspend fun loadPrivateKey(): String {
         return withContext(Dispatchers.IO) {

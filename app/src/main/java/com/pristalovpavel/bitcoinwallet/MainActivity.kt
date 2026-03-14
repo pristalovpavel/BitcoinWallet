@@ -10,8 +10,8 @@ import com.pristalovpavel.bitcoinwallet.ui.theme.BitcoinWalletTheme
 import com.pristalovpavel.bitcoinwallet.viewmodel.BitcoinViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+@AndroidEntryPoint(ComponentActivity::class)
+class MainActivity : Hilt_MainActivity() {
 
     private val bitcoinViewModel: BitcoinViewModel by viewModels()
 
