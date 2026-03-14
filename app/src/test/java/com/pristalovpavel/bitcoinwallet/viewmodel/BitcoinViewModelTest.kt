@@ -91,6 +91,8 @@ class BitcoinViewModelTest {
 
     @Test
     fun `loadBalance updates with failure when repository returns error`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
         val errorResult = Result.failure<Long>(Exception("Network error"))
         coEvery { repository.getBalance("myAddress") } returns errorResult
 
@@ -300,6 +302,328 @@ class BitcoinViewModelTest {
             viewModel.transactionStatus.value.exceptionOrNull()?.message
         )
         coVerify(exactly = 0) { repository.sendTransaction(any()) }
+    }
+
+    // --- sendBitcoinTransaction edge cases ---
+
+    @Test
+    fun `sendBitcoinTransaction fails when address is empty`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel._myAddress.value = ""
+
+        viewModel.sendBitcoinTransaction("destinationAddress", 50000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.transactionStatus.value.isFailure)
+        assertEquals(
+            "Sender's address hasn't loaded",
+            viewModel.transactionStatus.value.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.getTransactions(any()) }
+    }
+
+    @Test
+    fun `sendBitcoinTransaction fails when private key is not loaded`() = runTest {
+        // Create a ViewModel with blank private key
+        coEvery { repository.loadPrivateKey() } returns ""
+        val vmNoKey = BitcoinViewModel(repository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { repository.getTransactions("myAddress") } returns Result.success(emptyList())
+
+        vmNoKey.sendBitcoinTransaction("destinationAddress", 50000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vmNoKey.transactionStatus.value.isFailure)
+        assertEquals(
+            "Private key hasn't loaded",
+            vmNoKey.transactionStatus.value.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.sendTransaction(any()) }
+    }
+
+    @Test
+    fun `sendBitcoinTransaction fails when getTransactions returns failure`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { repository.getTransactions("myAddress") } returns
+                Result.failure(Exception("Network error"))
+
+        viewModel.sendBitcoinTransaction("destinationAddress", 50000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.transactionStatus.value.isFailure)
+        assertEquals(
+            "Failed to fetch transactions",
+            viewModel.transactionStatus.value.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.sendTransaction(any()) }
+    }
+
+    // --- loadTransactions edge case ---
+
+    @Test
+    fun `loadTransactions does not call API when address is empty`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel._myAddress.value = ""
+
+        viewModel.loadTransactions()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.getTransactions(any()) }
+    }
+
+    // --- findSuitableUtxo edge cases (tested through sendBitcoinTransaction) ---
+
+    @Test
+    fun `sendBitcoinTransaction skips unconfirmed UTXO`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val transactionsResult = Result.success(
+            listOf(
+                TransactionDTO(
+                    txId = "txid",
+                    fee = 1000L,
+                    vIn = emptyList(),
+                    vOut = listOf(
+                        Out(
+                            value = 100000L,
+                            scriptPublicKey = "scriptPubKey",
+                            scriptPublicKeyAddress = "myAddress"
+                        )
+                    ),
+                    status = Status(confirmed = false)
+                )
+            )
+        )
+        coEvery { repository.getTransactions("myAddress") } returns transactionsResult
+
+        viewModel.sendBitcoinTransaction("destinationAddress", 50000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.transactionStatus.value.isFailure)
+        assertEquals(
+            "No available UTXO for amount 50000",
+            viewModel.transactionStatus.value.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.sendTransaction(any()) }
+    }
+
+    @Test
+    fun `sendBitcoinTransaction skips already spent UTXO`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val transactionsResult = Result.success(
+            listOf(
+                // Transaction with a suitable output
+                TransactionDTO(
+                    txId = "sourceTxId",
+                    fee = 1000L,
+                    vIn = emptyList(),
+                    vOut = listOf(
+                        Out(
+                            value = 100000L,
+                            scriptPublicKey = "scriptPubKey",
+                            scriptPublicKeyAddress = "myAddress"
+                        )
+                    ),
+                    status = Status(confirmed = true)
+                ),
+                // Transaction that spends the above output
+                TransactionDTO(
+                    txId = "spendingTxId",
+                    fee = 250L,
+                    vIn = listOf(
+                        In(
+                            txId = "sourceTxId",
+                            vOut = 0,
+                            prevOut = PrevOut(
+                                value = 100000L,
+                                scriptPublicKeyAddress = "myAddress"
+                            )
+                        )
+                    ),
+                    vOut = listOf(
+                        Out(
+                            value = 99750L,
+                            scriptPublicKey = "scriptPubKey",
+                            scriptPublicKeyAddress = "otherAddress"
+                        )
+                    ),
+                    status = Status(confirmed = true)
+                )
+            )
+        )
+        coEvery { repository.getTransactions("myAddress") } returns transactionsResult
+
+        viewModel.sendBitcoinTransaction("destinationAddress", 50000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.transactionStatus.value.isFailure)
+        assertEquals(
+            "No available UTXO for amount 50000",
+            viewModel.transactionStatus.value.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.sendTransaction(any()) }
+    }
+
+    @Test
+    fun `sendBitcoinTransaction skips OP_RETURN outputs with null address`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val transactionsResult = Result.success(
+            listOf(
+                TransactionDTO(
+                    txId = "txid",
+                    fee = 1000L,
+                    vIn = emptyList(),
+                    vOut = listOf(
+                        Out(
+                            value = 100000L,
+                            scriptPublicKey = "6a",
+                            scriptPublicKeyAddress = null
+                        )
+                    ),
+                    status = Status(confirmed = true)
+                )
+            )
+        )
+        coEvery { repository.getTransactions("myAddress") } returns transactionsResult
+
+        viewModel.sendBitcoinTransaction("destinationAddress", 50000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.transactionStatus.value.isFailure)
+        assertEquals(
+            "No available UTXO for amount 50000",
+            viewModel.transactionStatus.value.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.sendTransaction(any()) }
+    }
+
+    // --- init edge cases ---
+
+    @Test
+    fun `init with empty addresses keeps defaults`() = runTest {
+        coEvery { repository.loadAddresses() } returns emptyList()
+        coEvery { repository.loadPrivateKey() } returns "privateKey"
+
+        val vm = BitcoinViewModel(repository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("", vm.myAddress.value)
+        assertEquals(emptySet<String>(), vm.ownAddresses.value)
+    }
+
+    @Test
+    fun `init with blank private key sets null`() = runTest {
+        coEvery { repository.loadAddresses() } returns listOf("myAddress")
+        coEvery { repository.loadPrivateKey() } returns "   "
+
+        val vm = BitcoinViewModel(repository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // privateKey is private, but we can verify behavior through sendBitcoinTransaction
+        coEvery { repository.getTransactions("myAddress") } returns Result.success(emptyList())
+
+        vm.sendBitcoinTransaction("dest", 1000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.transactionStatus.value.isFailure)
+        assertEquals(
+            "Private key hasn't loaded",
+            vm.transactionStatus.value.exceptionOrNull()?.message
+        )
+    }
+
+    // --- getTransactionDisplayData edge cases ---
+
+    @Test
+    fun `getTransactionDisplayData returns UNKNOWN when no inputs or outputs match`() {
+        val transaction = TransactionDTO(
+            txId = "txid",
+            fee = 500L,
+            vIn = listOf(
+                In(
+                    txId = "otherTxId",
+                    vOut = 0,
+                    prevOut = PrevOut(
+                        value = 50000L,
+                        scriptPublicKeyAddress = "foreignAddress1"
+                    )
+                )
+            ),
+            vOut = listOf(
+                Out(
+                    value = 49500L,
+                    scriptPublicKey = "scriptPubKey",
+                    scriptPublicKeyAddress = "foreignAddress2"
+                )
+            ),
+            status = Status(confirmed = true)
+        )
+
+        val displayData = viewModel.getTransactionDisplayData(transaction, setOf("myAddress"))
+
+        assertEquals(TransactionType.UNKNOWN, displayData.transactionType)
+        assertEquals(0.0, displayData.amountInmBtc, 0.001)
+        assertNull(displayData.transactionAddressText)
+    }
+
+    @Test
+    fun `getTransactionDisplayData EXPENSE includes fee in amount`() {
+        val transaction = createTransactionDTO(
+            vInAddresses = listOf("myAddress"),
+            vOutAddresses = listOf("recipientAddress", "myAddress"),
+            values = listOf(30000L, 69000L),
+            fee = 1000L,
+            confirmed = true
+        )
+
+        val displayData = viewModel.getTransactionDisplayData(transaction, setOf("myAddress"))
+
+        assertEquals(TransactionType.EXPENSE, displayData.transactionType)
+        // amount = 30000 (to recipient) + 1000 (fee) = 31000 sat = 0.31 mBTC
+        assertEquals(0.31, displayData.amountInmBtc, 0.001)
+    }
+
+    @Test
+    fun `getTransactionDisplayData INCOME with multiple own outputs sums correctly`() {
+        val transaction = TransactionDTO(
+            txId = "txid",
+            fee = 500L,
+            vIn = listOf(
+                In(
+                    txId = "otherTxId",
+                    vOut = 0,
+                    prevOut = PrevOut(
+                        value = 200000L,
+                        scriptPublicKeyAddress = "senderAddress"
+                    )
+                )
+            ),
+            vOut = listOf(
+                Out(
+                    value = 60000L,
+                    scriptPublicKey = "scriptPubKey",
+                    scriptPublicKeyAddress = "myAddress"
+                ),
+                Out(
+                    value = 40000L,
+                    scriptPublicKey = "scriptPubKey",
+                    scriptPublicKeyAddress = "myAddress"
+                )
+            ),
+            status = Status(confirmed = true)
+        )
+
+        val displayData = viewModel.getTransactionDisplayData(transaction, setOf("myAddress"))
+
+        assertEquals(TransactionType.INCOME, displayData.transactionType)
+        // 60000 + 40000 = 100000 sat = 1.0 mBTC
+        assertEquals(1.0, displayData.amountInmBtc, 0.001)
     }
 
     @Test
