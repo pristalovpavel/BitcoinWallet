@@ -41,8 +41,8 @@ class BitcoinViewModelTest {
         repository = mockk()
 
         // Mock repository methods
-        every { repository.loadAddresses() } returns listOf("myAddress")
-        every { repository.loadPrivateKey() } returns "privateKey"
+        coEvery { repository.loadAddresses() } returns listOf("myAddress")
+        coEvery { repository.loadPrivateKey() } returns "privateKey"
 
         // Initialize ViewModel
         viewModel = BitcoinViewModel(repository)
@@ -56,6 +56,8 @@ class BitcoinViewModelTest {
 
     @Test
     fun `init loads address data`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
         // Verify that myAddress and ownAddresses are initialized
         assertEquals("myAddress", viewModel.myAddress.value)
         assertEquals(setOf("myAddress"), viewModel.ownAddresses.value)
@@ -75,6 +77,8 @@ class BitcoinViewModelTest {
 
     @Test
     fun `loadBalance does not update when address is empty`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
         // Set myAddress to empty
         viewModel._myAddress.value = ""
 
@@ -99,6 +103,8 @@ class BitcoinViewModelTest {
 
     @Test
     fun `sendBitcoinTransaction successful`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
         val transactionsResult = Result.success(emptyList<TransactionDTO>())
         coEvery { repository.getTransactions("myAddress") } returns transactionsResult
 
@@ -127,6 +133,8 @@ class BitcoinViewModelTest {
 
     @Test
     fun `sendBitcoinTransaction fails when no UTXO found`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
         val transactionsResult = Result.success(emptyList<TransactionDTO>())
         coEvery { repository.getTransactions("myAddress") } returns transactionsResult
 
@@ -224,6 +232,74 @@ class BitcoinViewModelTest {
         assertEquals(TransactionType.SELF_TRANSFER, displayData.transactionType)
         assertEquals(0.0, displayData.amountInmBtc, 0.001)
         assertNull(displayData.transactionAddressText)
+    }
+
+    @Test
+    fun `getTransactionDisplayData handles coinbase and OP_RETURN without crash`() {
+        val transaction = TransactionDTO(
+            txId = "coinbaseTxId",
+            fee = 0L,
+            vIn = listOf(
+                In(
+                    txId = null,
+                    vOut = 0,
+                    prevOut = null
+                )
+            ),
+            vOut = listOf(
+                Out(
+                    value = 0L,
+                    scriptPublicKey = "6a",
+                    scriptPublicKeyAddress = null
+                ),
+                Out(
+                    value = 100000L,
+                    scriptPublicKey = "scriptPubKey",
+                    scriptPublicKeyAddress = "myAddress"
+                )
+            ),
+            status = Status(confirmed = true)
+        )
+
+        val displayData = viewModel.getTransactionDisplayData(transaction, setOf("myAddress"))
+
+        assertEquals(TransactionType.INCOME, displayData.transactionType)
+        assertEquals(1.0, displayData.amountInmBtc, 0.001)
+        assertNull(displayData.transactionAddressText)
+    }
+
+    @Test
+    fun `sendBitcoinTransaction ignores foreign UTXO`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val transactionsResult = Result.success(
+            listOf(
+                TransactionDTO(
+                    txId = "txid",
+                    fee = 1000L,
+                    vIn = emptyList(),
+                    vOut = listOf(
+                        Out(
+                            value = 100000L,
+                            scriptPublicKey = "scriptPubKey",
+                            scriptPublicKeyAddress = "foreignAddress"
+                        )
+                    ),
+                    status = Status(confirmed = true)
+                )
+            )
+        )
+        coEvery { repository.getTransactions("myAddress") } returns transactionsResult
+
+        viewModel.sendBitcoinTransaction("destinationAddress", 50000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.transactionStatus.value.isFailure)
+        assertEquals(
+            "No available UTXO for amount 50000",
+            viewModel.transactionStatus.value.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.sendTransaction(any()) }
     }
 
     @Test

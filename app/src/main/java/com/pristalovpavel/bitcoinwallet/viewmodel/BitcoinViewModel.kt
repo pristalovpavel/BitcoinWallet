@@ -52,7 +52,7 @@ class BitcoinViewModel @Inject constructor(
     private val _ownAddresses = MutableStateFlow<Set<String>>(emptySet())
     val ownAddresses: StateFlow<Set<String>> = _ownAddresses.asStateFlow()
 
-    private lateinit var privateKey: String
+    private var privateKey: String? = null
 
     private val feeAmount = 250L
     private val dustThreshold = 300L
@@ -62,12 +62,14 @@ class BitcoinViewModel @Inject constructor(
     }
 
     private fun loadAddressData() {
-        val addressesList = repository.loadAddresses()
-        if (addressesList.isNotEmpty()) {
-            _myAddress.value = addressesList[0]
-            _ownAddresses.value = addressesList.toSet()
+        viewModelScope.launch {
+            val addressesList = repository.loadAddresses()
+            if (addressesList.isNotEmpty()) {
+                _myAddress.value = addressesList[0]
+                _ownAddresses.value = addressesList.toSet()
+            }
+            privateKey = repository.loadPrivateKey().takeIf { it.isNotBlank() }
         }
-        privateKey = repository.loadPrivateKey()
     }
 
     fun loadBalance() {
@@ -92,6 +94,12 @@ class BitcoinViewModel @Inject constructor(
                         Result.failure(Exception("Sender's address hasn't loaded"))
                     return@launch
                 }
+                val currentPrivateKey = privateKey
+                if (currentPrivateKey.isNullOrEmpty()) {
+                    _transactionStatus.value =
+                        Result.failure(Exception("Private key hasn't loaded"))
+                    return@launch
+                }
                 val transactions = repository.getTransactions(address)
                 if (transactions.isFailure) {
                     _transactionStatus.value =
@@ -102,7 +110,7 @@ class BitcoinViewModel @Inject constructor(
                 val utxo = findSuitableUtxo(transactions.getOrNull() ?: emptyList(), amount)
                 if (utxo != null) {
                     val params = TransactionParams(
-                        privateKey = privateKey,
+                        privateKey = currentPrivateKey,
                         destinationAddress = destinationAddress,
                         amount = amount,
                         feeAmount = feeAmount,
@@ -135,15 +143,17 @@ class BitcoinViewModel @Inject constructor(
         transaction: TransactionDTO,
         ownAddresses: Set<String>
     ): TransactionDisplayData {
+        val addressedOutputs = transaction.vOut.filter { it.scriptPublicKeyAddress != null }
+
         val isOutgoing = transaction.vIn.any { input ->
-            input.prevOut.scriptPublicKeyAddress in ownAddresses
+            input.prevOut?.scriptPublicKeyAddress in ownAddresses
         }
 
-        val hasOutputToOthers = transaction.vOut.any { out ->
+        val hasOutputToOthers = addressedOutputs.any { out ->
             out.scriptPublicKeyAddress !in ownAddresses
         }
 
-        val isIncoming = !isOutgoing && transaction.vOut.any { out ->
+        val isIncoming = !isOutgoing && addressedOutputs.any { out ->
             out.scriptPublicKeyAddress in ownAddresses
         }
 
@@ -155,11 +165,11 @@ class BitcoinViewModel @Inject constructor(
         }
 
         val amount: Long = when (transactionType) {
-            TransactionType.EXPENSE -> transaction.vOut
+            TransactionType.EXPENSE -> addressedOutputs
                 .filter { it.scriptPublicKeyAddress !in ownAddresses }
                 .sumOf { it.value } + transaction.fee
 
-            TransactionType.INCOME -> transaction.vOut
+            TransactionType.INCOME -> addressedOutputs
                 .filter { it.scriptPublicKeyAddress in ownAddresses }
                 .sumOf { it.value }
 
@@ -172,14 +182,15 @@ class BitcoinViewModel @Inject constructor(
         val transactionAddressText = when (transactionType) {
             TransactionType.INCOME -> {
                 val senderAddress = transaction.vIn.firstOrNull { input ->
-                    input.prevOut.scriptPublicKeyAddress !in ownAddresses
+                    val address = input.prevOut?.scriptPublicKeyAddress
+                    address != null && address !in ownAddresses
                 }?.prevOut?.scriptPublicKeyAddress
 
                 if (senderAddress != null) "From: ${getShortAddress(senderAddress)}" else null
             }
 
             TransactionType.EXPENSE -> {
-                val receiverAddress = transaction.vOut.firstOrNull { out ->
+                val receiverAddress = addressedOutputs.firstOrNull { out ->
                     out.scriptPublicKeyAddress !in ownAddresses
                 }?.scriptPublicKeyAddress
 
@@ -201,10 +212,12 @@ class BitcoinViewModel @Inject constructor(
     }
 
     private fun findSuitableUtxo(transactions: List<TransactionDTO>, amount: Long): Utxo? {
+        val walletAddresses = ownAddresses.value
         for (tx in transactions) {
             if (tx.status.confirmed) {
                 tx.vOut.forEachIndexed { index, vout ->
-                    if (vout.value >= (amount + feeAmount + dustThreshold)) {
+                    val isOwnOutput = vout.scriptPublicKeyAddress in walletAddresses
+                    if (isOwnOutput && vout.value >= (amount + feeAmount + dustThreshold)) {
                         // Check that this output has not been used as an input (UTXO)
                         val isUsed = transactions.any { transaction ->
                             transaction.vIn.any { vin -> vin.txId == tx.txId && vin.vOut == index }

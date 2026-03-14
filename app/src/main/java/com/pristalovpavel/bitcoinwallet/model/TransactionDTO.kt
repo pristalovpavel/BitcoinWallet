@@ -15,11 +15,11 @@ data class TransactionDTO(
 
 data class In(
     @SerializedName("txid")
-    val txId: String,
+    val txId: String?,
     @SerializedName("vout")
     val vOut: Int,
     @SerializedName("prevout")
-    val prevOut: PrevOut
+    val prevOut: PrevOut?
 )
 
 data class Out(
@@ -27,7 +27,7 @@ data class Out(
     @SerializedName("scriptpubkey")
     val scriptPublicKey: String,
     @SerializedName("scriptpubkey_address")
-    val scriptPublicKeyAddress: String
+    val scriptPublicKeyAddress: String?
 )
 
 data class Status(
@@ -37,5 +37,5 @@ data class Status(
 data class PrevOut(
     val value: Long,
     @SerializedName("scriptpubkey_address")
-    val scriptPublicKeyAddress: String
+    val scriptPublicKeyAddress: String?
 )

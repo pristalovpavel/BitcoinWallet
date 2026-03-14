@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.pristalovpavel.bitcoinwallet"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.pristalovpavel.bitcoinwallet"

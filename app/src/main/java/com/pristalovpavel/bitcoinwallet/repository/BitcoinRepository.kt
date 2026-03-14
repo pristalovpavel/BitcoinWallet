@@ -14,13 +14,17 @@ class BitcoinRepository @Inject constructor(
     private val api: BitcoinApi,
     @ApplicationContext private val context: Context
 ) {
-    fun loadPrivateKey(): String {
-        return readDataFromFile(context, "private_key.txt")
+    suspend fun loadPrivateKey(): String {
+        return withContext(Dispatchers.IO) {
+            readDataFromFile(context, "private_key.txt")
+        }
     }
 
-    fun loadAddresses(): List<String> {
-        val addressesData = readDataFromFile(context, "addresses.txt")
-        return addressesData.split("\r\n", "\n").filter { it.isNotEmpty() }
+    suspend fun loadAddresses(): List<String> {
+        return withContext(Dispatchers.IO) {
+            val addressesData = readDataFromFile(context, "addresses.txt")
+            addressesData.split("\r\n", "\n").filter { it.isNotEmpty() }
+        }
     }
 
     suspend fun getBalance(address: String): Result<Long> {
@@ -55,7 +59,13 @@ class BitcoinRepository @Inject constructor(
                 if (response.isSuccessful) {
                     Result.success(response.body() ?: "")
                 } else {
-                    Result.failure(Exception("Failed to send transaction"))
+                    val errorMessage = response.errorBody()?.string()?.trim()
+                    Result.failure(
+                        Exception(
+                            errorMessage?.takeIf { it.isNotEmpty() }
+                                ?: "Failed to send transaction (HTTP ${response.code()})"
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 Result.failure(e)
